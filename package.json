@@ -1,21 +1,94 @@
-{
-  "name": "multiai-switch-render-deploy",
-  "version": "1.0.0",
-  "description": "Full-stack AI chat web app with model switching",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "axios": "^1.6.0"
-  },
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "keywords": ["ai", "chat", "express", "fullstack"],
-  "author": "",
-  "license": "MIT"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-AI Chat</title>
+<style>
+  body { background: #111; color: #eee; font-family: Arial, sans-serif; margin:0; padding:0; }
+  .container { max-width: 700px; margin: 40px auto; padding: 20px; background: #1a1a1a; border-radius: 10px; }
+  h1 { text-align:center; }
+  select, input { padding:10px; margin:5px 0; width:100%; border-radius:5px; border:none; }
+  button { padding:10px; border:none; border-radius:5px; cursor:pointer; background:#333; color:#eee; margin-top:5px; }
+  #chat { margin-top:20px; min-height:200px; }
+  .message { margin:10px 0; padding:10px; border-radius:5px; }
+  .user { background:#222; text-align:right; }
+  .ai { background:#333; text-align:left; white-space:pre-wrap; }
+  .copy-btn { margin-left:10px; cursor:pointer; color:#0f0; font-size:0.9em; }
+  .typing { font-style:italic; color:#999; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Multi-AI Chat</h1>
+
+  <label for="model">AI Model:</label>
+  <select id="model">
+    <option value="OpenAI">OpenAI: GPT-OSS-20B (free)</option>
+    <option value="Meta">Meta: Llama 3.3 70B Instruct (free)</option>
+  </select>
+
+  <input type="text" id="userMessage" placeholder="Type a message..." />
+  <button id="sendBtn">Send</button>
+
+  <div id="chat"></div>
+</div>
+
+<script>
+const chatDiv = document.getElementById('chat');
+const sendBtn = document.getElementById('sendBtn');
+const userInput = document.getElementById('userMessage');
+const modelSelect = document.getElementById('model');
+
+function appendMessage(text, sender='ai', isHTML=false){
+  const div = document.createElement('div');
+  div.className = 'message ' + sender;
+  div.innerHTML = isHTML ? text : text.replace(/\n/g,'<br>');
+  if(sender==='ai'){
+    const copyBtn = document.createElement('span');
+    copyBtn.innerText = '[Copy]';
+    copyBtn.className = 'copy-btn';
+    copyBtn.onclick = ()=>navigator.clipboard.writeText(text);
+    div.appendChild(copyBtn);
+  }
+  chatDiv.appendChild(div);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
 }
+
+async function sendMessage(){
+  const message = userInput.value.trim();
+  if(!message) return;
+
+  appendMessage(message, 'user');
+  userInput.value='';
+
+  const typingDiv = document.createElement('div');
+  typingDiv.className='message ai typing';
+  typingDiv.innerText='AI is typing...';
+  chatDiv.appendChild(typingDiv);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+
+  try{
+    const res = await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message, model:modelSelect.value})
+    });
+    const data = await res.json();
+    typingDiv.remove();
+
+    if(res.ok) appendMessage(data.response,'ai');
+    else appendMessage('Error: ' + (data.details || data.error),'ai');
+
+  }catch(err){
+    typingDiv.remove();
+    console.error(err);
+    appendMessage('Error contacting AI: '+err.message,'ai');
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+userInput.addEventListener('keydown', e=>{if(e.key==='Enter') sendMessage();});
+</script>
+</body>
+</html>
