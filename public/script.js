@@ -1,4 +1,3 @@
-
 class ChatApp {
     constructor() {
         this.chatContainer = document.getElementById('chat-container');
@@ -7,6 +6,9 @@ class ChatApp {
         this.modelSelect = document.getElementById('ai-model');
         
         this.isTyping = false;
+        this.apiURL = 'https://reallyopen-ai.onrender.com';
+        this.apiKey = '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';
+        
         this.init();
     }
 
@@ -55,27 +57,27 @@ class ChatApp {
         if (!message || this.isTyping) return;
 
         const selectedModel = this.modelSelect.value;
-        
+
         // Add user message to chat
         this.addMessage(message, 'user');
-        
+
         // Clear input
         this.messageInput.value = '';
         this.autoResizeTextarea();
         this.updateSendButton();
-        
+
         // Set typing state
         this.isTyping = true;
-        
+
         // Show typing indicator
         const typingElement = this.showTypingIndicator();
-        
+
         try {
-            // Send request to backend
-            const response = await fetch('/api/chat', {
+            const response = await fetch(`${this.apiURL}/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
                 },
                 body: JSON.stringify({
                     message: message,
@@ -88,13 +90,10 @@ class ChatApp {
             }
 
             const data = await response.json();
-            
-            // Remove typing indicator
+
             this.removeTypingIndicator(typingElement);
-            
-            // Add AI response with typing animation
             this.addMessageWithTyping(data.response, 'bot');
-            
+
         } catch (error) {
             console.error('Error sending message:', error);
             this.removeTypingIndicator(typingElement);
@@ -108,43 +107,40 @@ class ChatApp {
     addMessage(content, type) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}-message fade-in`;
-        
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.innerHTML = this.formatMessage(content);
-        
+
         messageDiv.appendChild(contentDiv);
         this.chatContainer.appendChild(messageDiv);
-        
+
         this.scrollToBottom();
     }
 
     async addMessageWithTyping(content, type) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}-message fade-in`;
-        
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        
+
         messageDiv.appendChild(contentDiv);
         this.chatContainer.appendChild(messageDiv);
-        
-        // Type out the message character by character
+
         await this.typeText(contentDiv, content);
-        
         this.scrollToBottom();
     }
 
     async typeText(element, text) {
         const words = text.split(' ');
         let currentText = '';
-        
+
         for (let i = 0; i < words.length; i++) {
             currentText += (i > 0 ? ' ' : '') + words[i];
             element.innerHTML = this.formatMessage(currentText);
             this.scrollToBottom();
-            
-            // Vary typing speed for more natural feel
+
             const delay = Math.random() * 100 + 50;
             await new Promise(resolve => setTimeout(resolve, delay));
         }
@@ -153,7 +149,7 @@ class ChatApp {
     showTypingIndicator() {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'message bot-message typing-message';
-        
+
         const indicator = document.createElement('div');
         indicator.className = 'typing-indicator';
         indicator.innerHTML = `
@@ -164,11 +160,11 @@ class ChatApp {
                 <div class="typing-dot"></div>
             </div>
         `;
-        
+
         typingDiv.appendChild(indicator);
         this.chatContainer.appendChild(typingDiv);
         this.scrollToBottom();
-        
+
         return typingDiv;
     }
 
@@ -182,21 +178,20 @@ class ChatApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot-message fade-in';
         messageDiv.style.opacity = '0.7';
-        
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.style.fontStyle = 'italic';
         contentDiv.style.fontSize = '0.9rem';
         contentDiv.textContent = content;
-        
+
         messageDiv.appendChild(contentDiv);
         this.chatContainer.appendChild(messageDiv);
-        
+
         this.scrollToBottom();
     }
 
     formatMessage(content) {
-        // Basic formatting - convert line breaks to <br>
         return content.replace(/\n/g, '<br>');
     }
 
@@ -207,15 +202,12 @@ class ChatApp {
     }
 }
 
-// Initialize the chat app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new ChatApp();
 });
 
-// Handle page visibility change to maintain connection
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        // Optionally refresh or reconnect when page becomes visible
         console.log('Chat app is now visible');
     }
 });
