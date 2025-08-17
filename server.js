@@ -1,48 +1,57 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const axios = require('axios');
+import express from "express";
+import fetch from "node-fetch";
+import cors from "cors";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-app.post('/api/chat', async (req, res) => {
+const OPENROUTER_API_KEY = "YOUR_OPENROUTER_API_KEY"; // <- put your key here
+const MODEL_ID = "openai/gpt-oss-20b:free";
+
+app.post("/api/chat", async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).send({ error: "No message provided" });
+
   try {
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ response: 'Message is required.' });
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODEL_ID,
+        messages: [{ role: "user", content: message }],
+        stream: true, // enables streaming
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(500).send({ error: text });
     }
 
-    const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      {
-        model: 'deepseek/deepseek-r1-0528',
-        messages: [{ role: 'user', content: message }],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
-    const aiResponse = response.data.choices[0].message.content;
-    res.json({ response: aiResponse });
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-  } catch (error) {
-    console.error('Chat API error:', error.response?.data || error.message);
-    const msg = error.response?.data?.error?.message || 'Internal server error';
-    res.status(error.response?.status || 500).json({ response: `AI error: ${msg}` });
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      res.write(`data: ${chunk}\n\n`);
+    }
+
+    res.end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: "Something went wrong." });
   }
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
