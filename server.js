@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
-require('dotenv').config(); // Only needed if using a local .env file
+//require('dotenv').config(); // Only needed if using a local .env file
 
 const app = express();
 const PORT = process.env.PORT || 5000;
