@@ -122,7 +122,6 @@
       background-color: #64b5f6;
     }
 
-    /* Typing animation */
     .typing {
       font-style: italic;
       opacity: 0.7;
@@ -136,9 +135,8 @@
       <div>
         <label for="ai-switch">AI Model:</label>
         <select id="ai-switch">
-          <option value="GPT-OSS-20B">GPT-OSS-20B</option>
-          <option value="GPT-3">GPT-3</option>
-          <option value="Claude">Claude</option>
+          <option value="OpenAI">OpenAI: GPT-OSS-20B (free)</option>
+          <option value="Meta">Meta: Llama 3.3 70B Instruct (free)</option>
         </select>
       </div>
     </header>
@@ -204,10 +202,8 @@
         });
         const data = await res.json();
 
-        // Remove typing indicator
         typingDiv.remove();
 
-        // Smooth typing for AI response
         const aiDiv = appendMessage('', 'ai', true);
         await typeText(aiDiv, data.response);
       } catch (err) {
