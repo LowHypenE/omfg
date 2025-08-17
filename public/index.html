@@ -60,6 +60,8 @@
       padding: 10px;
       border-radius: 8px;
       position: relative;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .user {
@@ -119,6 +121,12 @@
     #send:hover {
       background-color: #64b5f6;
     }
+
+    /* Typing animation */
+    .typing {
+      font-style: italic;
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
@@ -151,12 +159,12 @@
     const sendBtn = document.getElementById('send');
     const aiSwitch = document.getElementById('ai-switch');
 
-    function appendMessage(text, sender) {
+    function appendMessage(text, sender, withCopy = false) {
       const div = document.createElement('div');
       div.className = `message ${sender}`;
       div.textContent = text;
 
-      if (sender === 'ai') {
+      if (withCopy) {
         const copyBtn = document.createElement('button');
         copyBtn.textContent = 'Copy';
         copyBtn.className = 'copy-btn';
@@ -166,6 +174,16 @@
 
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    async function typeText(element, text, delay = 20) {
+      element.textContent = '';
+      for (let i = 0; i < text.length; i++) {
+        element.textContent += text[i];
+        chat.scrollTop = chat.scrollHeight;
+        await new Promise(r => setTimeout(r, delay));
+      }
     }
 
     async function sendMessage() {
@@ -174,6 +192,10 @@
       appendMessage(msg, 'user');
       messageInput.value = '';
 
+      // Typing indicator
+      const typingDiv = appendMessage('AI is typing...', 'ai');
+      typingDiv.classList.add('typing');
+
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -181,9 +203,16 @@
           body: JSON.stringify({ message: msg, model: aiSwitch.value })
         });
         const data = await res.json();
-        appendMessage(data.response, 'ai');
+
+        // Remove typing indicator
+        typingDiv.remove();
+
+        // Smooth typing for AI response
+        const aiDiv = appendMessage('', 'ai', true);
+        await typeText(aiDiv, data.response);
       } catch (err) {
-        appendMessage('Error contacting AI API.', 'ai');
+        typingDiv.remove();
+        appendMessage('Error contacting AI API.', 'ai', true);
       }
     }
 
