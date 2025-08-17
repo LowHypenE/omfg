@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const OPENROUTER_API_KEY = "YOUR_OPENROUTER_API_KEY"; // <- put your key here
+const OPENROUTER_API_KEY = "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"; // <- put your key here
 const MODEL_ID = "openai/gpt-oss-20b:free";
 
 app.post("/api/chat", async (req, res) => {
