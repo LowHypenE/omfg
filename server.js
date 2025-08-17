@@ -1,57 +1,47 @@
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
+// server.js
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-const OPENROUTER_API_KEY = "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"; // <- put your key here
-const MODEL_ID = "openai/gpt-oss-20b:free";
+// AI chat endpoint
+app.post('/api/chat', async (req, res) => {
+  const { message, model } = req.body;
 
-app.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
-  if (!message) return res.status(400).send({ error: "No message provided" });
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+    const response = await axios.post(
+      'https://reallyopen-ai.onrender.com', // Your backend AI endpoint
+      {
+        prompt: message,
+        model: model
       },
-      body: JSON.stringify({
-        model: MODEL_ID,
-        messages: [{ role: "user", content: message }],
-        stream: true, // enables streaming
-      }),
-    });
+      {
+        headers: {
+          'Authorization': 'Bearer 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',
+          'Content-Type': 'application/json'
+        }
+      }
+    );
 
-    if (!response.ok) {
-      const text = await response.text();
-      return res.status(500).send({ error: text });
-    }
-
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value);
-      res.write(`data: ${chunk}\n\n`);
-    }
-
-    res.end();
+    // Send AI response back to frontend
+    res.json({ response: response.data });
   } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: "Something went wrong." });
+    console.error('Error contacting AI:', err.response?.data || err.message);
+    res.status(500).json({ error: 'AI request failed' });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
