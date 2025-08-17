@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
-// require('dotenv').config(); // Only needed if using a local .env file
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,8 +20,8 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Always use DeepSeek: R1 0528 (free)
-    const model = 'DeepSeek: R1 0528';
+    // Use DeepSeek R1 0528 model
+    const model = 'deepseek/deepseek-r1-0528';
 
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
